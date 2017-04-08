@@ -7,6 +7,7 @@
 #define MAPA_POSICION_ORIGEN_y 616//origen de cordenadas del worm dentro de la imagne de fondo eje y
 
 #define MAX_FPS_FOR_WALKING 50
+#define MAX_FPS_FOR_JUMPING 32
 //****************Path de las imagenes de caminar***************
 #define WWALK_F1 "Imagenes/wwalking/wwalk-F1.png"
 #define WWALK_F2 "Imagenes/wwalking/wwalk-F2.png"
@@ -42,7 +43,9 @@
 //***************Path imagen de fondo***************************
 
 #define IMAGEN_FONDO "Imagenes/Scenario.png"
-
+#define IMAGEN_FONDO_FONDO "Imagenes/fondo.jpg"
+#define IMAGEN_FONDO_FONDO_START "Imagenes/Startfondo.png"
+#include "worms.h"
 //**************************************************************
 bool AlegroOkSet();
 
@@ -113,8 +116,16 @@ graficar::graficar()
 																											{
 																												if ((DisplayImage = al_load_bitmap(IMAGEN_FONDO)) != NULL)
 																												{
-																													IsCorrectedSet = true;
-																													return;
+																													if ((DisplayImageFondo = al_load_bitmap(IMAGEN_FONDO_FONDO)) != NULL)
+																													{
+																														if ((StartImageFondo = al_load_bitmap(IMAGEN_FONDO_FONDO_START)) != NULL)
+																														{
+																															IsCorrectedSet = true;
+																															return;
+																														}
+																														al_destroy_bitmap(StartImageFondo);
+																													}
+																													al_destroy_bitmap(DisplayImageFondo);
 																												}
 																												al_destroy_bitmap(DisplayImage);
 																											}
@@ -186,10 +197,13 @@ void graficar::SetWorm(float _PosicionWormX, float _PosicionWormY, uint16_t _Fps
 {
 	MiraDerecha = _MiraDerecha;
 
-	uint8_t SecuanciaDeFramesWalk[50]={3,3,3,3,3,0,1,2,3,4,5,6,7,8,9,10,10,11,12,13,14,3,3,4,5,6,7,8,9,10,10,11,12,13,14,3,3,4,5,6,7,8,9,10,10,11,12,13,14,3};//secuencian en que aparecen las imagenes en el timepo
+	uint8_t SecuanciaDeFramesWalk[50]={3,3,3,3,3,0,1,2,3,4,5,6,7,8,9,10,10,11,12,13,14,3,3,4,5,6,7,8,9,10,10,11,12,13,14,3,3,4,5,6,7,8,9,10,10,11,12,13,14,3};//secuencian en que aparecen las imagenes en el timepo, de la caminata
+	uint8_t SecuanciaDeFramesJump[MAX_FPS_FOR_JUMPING] = {0,1,2,3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,5,6,7,8,9};//secuencian en que aparecen las imagenes en el timepo, del salto
 	switch (_Estado)
 	{
-	case 1://caso walking
+	case WARMING_UP://caso walking
+	case WALKING:
+	case FINISHING_WALKING:
 		if (_FpsCounter < MAX_FPS_FOR_WALKING)//valido que el fps este en el rango del maximo fps para walking
 		{
 			al_draw_bitmap(WalkBitmaps[SecuanciaDeFramesWalk[_FpsCounter]], MAPA_POSICION_ORIGEN_X + _PosicionWormX, MAPA_POSICION_ORIGEN_y - _PosicionWormY, MiraDerecha);
@@ -203,8 +217,26 @@ void graficar::SetWorm(float _PosicionWormX, float _PosicionWormY, uint16_t _Fps
 
 		break;
 
-	case 2://jumping
+	case STILL:
+		al_draw_bitmap(WalkBitmaps[3], MAPA_POSICION_ORIGEN_X + _PosicionWormX, MAPA_POSICION_ORIGEN_y - _PosicionWormY, MiraDerecha);
+		al_flip_display();
 
+		break;
+	case JUMPING:
+	case FINISHING_JUMPING:
+		if (_FpsCounter < MAX_FPS_FOR_JUMPING)
+		{
+			if (_FpsCounter<5 || _FpsCounter>27)
+			{
+				al_draw_bitmap(JumpBitmaps[SecuanciaDeFramesJump[_FpsCounter]], MAPA_POSICION_ORIGEN_X + _PosicionWormX, MAPA_POSICION_ORIGEN_y - _PosicionWormY, MiraDerecha);
+				al_flip_display();
+			}
+			else
+			{
+				al_draw_bitmap(WalkBitmaps[3], MAPA_POSICION_ORIGEN_X + _PosicionWormX, MAPA_POSICION_ORIGEN_y - _PosicionWormY, MiraDerecha);
+				al_flip_display();
+			}
+		}
 		break;
 	}
 	
@@ -220,6 +252,14 @@ void graficar::SetWorm(float _PosicionWormX, float _PosicionWormY, uint16_t _Fps
 //
 void graficar::DrawBackgarund()
 {
+	al_clear_to_color(al_map_rgb(0, 0, 0));
+	al_draw_scaled_bitmap(DisplayImageFondo,
+		0, 0,
+		al_get_bitmap_width(DisplayImageFondo),
+		al_get_bitmap_height(DisplayImageFondo),
+		0, 0,
+		ANCHO_PANTALLA, ALTO_PANTALLA,
+		0);
 	al_draw_bitmap(DisplayImage, 0, 0,0);
 	al_flip_display();
 }
@@ -247,6 +287,18 @@ void graficar::DestroyAll()
 bool graficar::IsInitOk()
 {
 	return IsCorrectedSet;
+}
+
+void graficar::Enter()
+{
+	al_draw_scaled_bitmap(StartImageFondo,
+		0, 0,
+		al_get_bitmap_width(StartImageFondo),
+		al_get_bitmap_height(StartImageFondo),
+		0, 0,
+		ANCHO_PANTALLA, ALTO_PANTALLA,
+		0);
+	al_flip_display();
 }
 
 //AlegroOkSet()
